@@ -108,7 +108,7 @@ Execute os requests nessa ordem:
 
 ### 3. Executar a Simulação no Wokwi
 
-Acesse o link da simulação pública: **[INSERIR LINK DO WOKWI AQUI]**
+Acesse o link da simulação pública: **[https://wokwi.com/projects/462317954210211841]**
 
 - Gire o **potenciômetro** para simular o peso da água na garrafa
 - Aguarde `💧 CONSUMO CONFIRMADO` aparecer no Serial Monitor
@@ -183,6 +183,6 @@ Resposta esperada:
 
 ## 🔗 Links
 
-- 🔵 [Simulação Wokwi](INSERIR LINK)
+- 🔵 [Simulação Wokwi](https://wokwi.com/projects/462317954210211841)
 - 📺 [Vídeo YouTube](INSERIR LINK)
 - 📋 [Challenge Care Plus — FIAP](https://www.fiap.com.br)
