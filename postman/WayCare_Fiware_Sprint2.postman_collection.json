@@ -1,0 +1,565 @@
+{
+  "info": {
+    "_postman_id": "68985b41-f330-4e0d-b3b9-acab084dab1b",
+    "name": "WayCare Fiware Sprint 2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53223645",
+    "_collection_link": "https://go.postman.co/collection/53223645-68985b41-f330-4e0d-b3b9-acab084dab1b?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "IOT Agent MQTT",
+      "item": [
+        {
+          "name": "1.1 Health Check IoT Agent",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://{{url}}:4041/iot/about",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "4041",
+              "path": [
+                "iot",
+                "about"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Provisioning a Service Group for MQTT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n \"services\": [\n   {\n     \"apikey\":      \"waycare2025\",\n     \"cbroker\":     \"http://{{url}}:1026\",\n     \"entity_type\": \"WaycareDock\",\n     \"resource\":    \"\",\n     \"protocol\":    \"IoTA-JSON\"\n   }\n ]\n}\n"
+            },
+            "url": {
+              "raw": "http://{{url}}:4041/iot/services",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "4041",
+              "path": [
+                "iot",
+                "services"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.1 Delete Service Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "fiware-service",
+                "value": "smart"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:4041/iot/services/?resource=&apikey=waycare2025",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "4041",
+              "path": [
+                "iot",
+                "services",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "resource",
+                  "value": ""
+                },
+                {
+                  "key": "apikey",
+                  "value": "waycare2025"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Health Check Services",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:4041/iot/services",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "4041",
+              "path": [
+                "iot",
+                "services"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Provisioning WayCare Dock Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"devices\": [\n    {\n      \"device_id\":   \"dock01\",\n      \"entity_name\": \"urn:ngsi-ld:WaycareDock:dock01\",\n      \"entity_type\": \"WaycareDock\",\n      \"protocol\":    \"IoTA-JSON\",\n      \"transport\":   \"MQTT\",\n      \"timezone\":    \"America/Sao_Paulo\",\n      \"attributes\": [\n        { \"object_id\": \"peso\",       \"name\": \"peso\",       \"type\": \"Float\"   },\n        { \"object_id\": \"consumo\",    \"name\": \"consumo\",    \"type\": \"Float\"   },\n        { \"object_id\": \"pct\",        \"name\": \"pct\",        \"type\": \"Float\"   },\n        { \"object_id\": \"fatias\",     \"name\": \"fatias\",     \"type\": \"Integer\" },\n        { \"object_id\": \"estado_led\", \"name\": \"estado_led\", \"type\": \"Text\"    }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://{{url}}:4041/iot/devices",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "4041",
+              "path": [
+                "iot",
+                "devices"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. List all Devices Provisioned",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:4041/iot/devices",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "4041",
+              "path": [
+                "iot",
+                "devices"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "9. Delete WayCare Dock in IoT Agent",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "fiware-service",
+                "value": "smart"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:4041/iot/devices/dock01",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "4041",
+              "path": [
+                "iot",
+                "devices",
+                "dock01"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10. Delete WayCare Dock in Orion",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "fiware-service",
+                "value": "smart"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:WaycareDock:dock01",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "1026",
+              "path": [
+                "v2",
+                "entities",
+                "urn:ngsi-ld:WaycareDock:dock01"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "STH-Comet",
+      "item": [
+        {
+          "name": "1. Health Check STH-Comet",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://{{url}}:8666/version",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "8666",
+              "path": [
+                "version"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Subscribe consumo (historico)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Notify STH-Comet of all WayCare Dock consumo changes\",\n  \"subject\": {\n    \"entities\": [\n      {\n        \"id\":   \"urn:ngsi-ld:WaycareDock:dock01\",\n        \"type\": \"WaycareDock\"\n      }\n    ],\n    \"condition\": { \"attrs\": [\"consumo\"] }\n  },\n  \"notification\": {\n    \"http\": {\n      \"url\": \"http://{{url}}:8666/notify\"\n    },\n    \"attrs\": [\"consumo\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "http://{{url}}:1026/v2/subscriptions",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "1026",
+              "path": [
+                "v2",
+                "subscriptions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Request consumo historico (ultimas 10)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:8666/STH/v1/contextEntities/type/WaycareDock/id/urn:ngsi-ld:WaycareDock:dock01/attributes/consumo?lastN=10",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "8666",
+              "path": [
+                "STH",
+                "v1",
+                "contextEntities",
+                "type",
+                "WaycareDock",
+                "id",
+                "urn:ngsi-ld:WaycareDock:dock01",
+                "attributes",
+                "consumo"
+              ],
+              "query": [
+                {
+                  "key": "lastN",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Orion Context Broker",
+      "item": [
+        {
+          "name": "1. Version",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://{{url}}:1026/version",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "1026",
+              "path": [
+                "version"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get all entities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:1026/v2/entities",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "1026",
+              "path": [
+                "v2",
+                "entities"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Get WayCare Dock entity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:WaycareDock:dock01",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "1026",
+              "path": [
+                "v2",
+                "entities",
+                "urn:ngsi-ld:WaycareDock:dock01"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Get consumo attribute",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              },
+              {
+                "key": "accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:WaycareDock:dock01/attrs/consumo",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "1026",
+              "path": [
+                "v2",
+                "entities",
+                "urn:ngsi-ld:WaycareDock:dock01",
+                "attrs",
+                "consumo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Get peso attribute",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "fiware-service",
+                "value": "smart",
+                "type": "text"
+              },
+              {
+                "key": "fiware-servicepath",
+                "value": "/",
+                "type": "text"
+              },
+              {
+                "key": "accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://{{url}}:1026/v2/entities/urn:ngsi-ld:WaycareDock:dock01/attrs/peso",
+              "protocol": "http",
+              "host": [
+                "{{url}}"
+              ],
+              "port": "1026",
+              "path": [
+                "v2",
+                "entities",
+                "urn:ngsi-ld:WaycareDock:dock01",
+                "attrs",
+                "peso"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "url",
+      "value": "52.224.244.229"
+    }
+  ]
+}
