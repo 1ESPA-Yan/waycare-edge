@@ -6,7 +6,7 @@
 // ============================================================
 //  WayCare Dock — Simulação Wokwi + MQTT / Fiware
 //  Hardware: ESP32 DevKit C v4
-//  Componentes: Potenciômetro (simula célula de carga),
+//  Componentes: Célula de carga + HX711 (peso real),
 //               Pushbutton (tara), RGB LED (feedback visual)
 //
 //  Conecta ao Wi-Fi e publica dados de hidratação via MQTT
@@ -16,6 +16,7 @@
 
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include "HX711.h"
 
 // ── Wi-Fi ─────────────────────────────────────────────────────
 // No Wokwi, usar "Wokwi-GUEST" sem senha
@@ -37,11 +38,17 @@
 #define DEVICE_ID       "dock01"
 
 // ── Pinagem ──────────────────────────────────────────────────
-#define PIN_POT   34
+#define PIN_HX_DT   16
+#define PIN_HX_SCK  17
 #define PIN_BTN   25
 #define PIN_R     12
 #define PIN_G     14
 #define PIN_B     27
+
+// Fator de calibração da HX711.
+// No Wokwi a célula é "perfeita" — 1.0 já dá leitura em gramas.
+// Em hardware real, calibra-se com um peso conhecido.
+#define HX_SCALE_FACTOR  1.0f
 
 // ── Configurações de peso ─────────────────────────────────────
 #define MAX_WEIGHT_G        2000
@@ -75,6 +82,9 @@ PubSubClient mqttClient(wifiClient);
 
 unsigned long lastMqttReportMs = 0;
 bool          mqttEverConnected = false;
+
+// ── Objeto da célula de carga (HX711) ────────────────────────
+HX711 scale;
 
 // ── Estado global ─────────────────────────────────────────────
 float   tareOffset      = 0;
@@ -200,12 +210,17 @@ void publishMQTT(float pesoAtualG, const char* estadoLed) {
 }
 
 // ── Leitura de peso com média móvel ──────────────────────────
-// Suaviza variações bruscas do potenciômetro
+// Lê da HX711 (já em gramas após calibração+tara) e suaviza
+// pequenas variações com média móvel circular
 float readWeightG() {
-  int raw = analogRead(PIN_POT);
-  float grams = (raw / 4095.0f) * MAX_WEIGHT_G;
-  grams -= tareOffset;
+  float grams;
+  if (scale.is_ready()) {
+    grams = scale.get_units(1);
+  } else {
+    grams = lastStableG;
+  }
   if (grams < 0) grams = 0;
+  if (grams > MAX_WEIGHT_G) grams = MAX_WEIGHT_G;
 
   readSum -= readings[readIndex];
   readings[readIndex] = grams;
@@ -216,22 +231,24 @@ float readWeightG() {
 }
 
 // ── Tara ──────────────────────────────────────────────────────
-// Faz 40 leituras para calcular o offset e zerar a balança
+// Usa a tara nativa da HX711 (média de N leituras define o zero)
 void doTare() {
-  float sum = 0;
-  for (int i = 0; i < 40; i++) {
-    sum += (analogRead(PIN_POT) / 4095.0f) * MAX_WEIGHT_G;
-    delay(10);
-  }
-  tareOffset      = sum / 40.0f;
+  Serial.println("=== TARANDO... aguarde ===");
+  scale.tare(20);
+
+  tareOffset      = 0;
   lastStableG     = 0;
   stableCandidate = 0;
   waitingStable   = false;
   isAirborne      = false;
   taredOnce       = true;
 
+  // Limpa buffer da média móvel para não arrastar valores antigos
+  memset(readings, 0, sizeof(readings));
+  readSum   = 0;
+  readIndex = 0;
+
   Serial.println("=== TARA REALIZADA ===");
-  Serial.printf("  Offset de tara: %.1f g\n", tareOffset);
 }
 
 // ── Verificação de metas ──────────────────────────────────────
@@ -311,14 +328,29 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\n\n=== WayCare Dock — Simulação Wokwi + MQTT/Fiware ===");
   Serial.println("  Segure o botão por 2s para tarar.");
-  Serial.println("  Gire o potenciômetro para simular peso da água.\n");
+  Serial.println("  Ajuste a célula de carga para simular peso da água.\n");
 
   // Configura PWM para o LED RGB
   ledcAttach(PIN_R, PWM_FREQ, PWM_RES);
   ledcAttach(PIN_G, PWM_FREQ, PWM_RES);
   ledcAttach(PIN_B, PWM_FREQ, PWM_RES);
   pinMode(PIN_BTN, INPUT_PULLUP);
-  pinMode(PIN_POT, INPUT);
+
+  // Inicializa HX711 + célula de carga
+  scale.begin(PIN_HX_DT, PIN_HX_SCK);
+  scale.set_scale(HX_SCALE_FACTOR);
+
+  Serial.println("[HX711] Aguardando célula de carga...");
+  unsigned long t0 = millis();
+  while (!scale.is_ready() && (millis() - t0) < 3000) {
+    delay(100);
+  }
+  if (scale.is_ready()) {
+    Serial.println("[HX711] Pronta!");
+  } else {
+    Serial.println("[HX711] Timeout — verifique fiação no diagram.json.");
+  }
+
   memset(readings, 0, sizeof(readings));
   delay(500);
   doTare();
