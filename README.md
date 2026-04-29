@@ -13,14 +13,14 @@ Nesta sprint, o hardware foi simulado digitalmente no **Wokwi**, com uma **célu
 
 ## 🏗️ Arquitetura da Solução
 
-```
-[Edge Layer]              [Connectivity]     [Backend]              [Application]
-ESP32 (Wokwi)        →    MQTT :1883     →   IoT Agent :4041   →   Orion :1026
-Célula de carga           Mosquitto          FIWARE                 Context Broker
-+ HX711 (peso)            (Broker)           (Tradutor)             (Estado atual)
-LED RGB
-Pushbutton
-```
+![Diagrama de Arquitetura WayCare](docs/diagrama_arquitetura.png)
+
+A arquitetura do projeto **WayCare** baseia-se na plataforma **FIWARE**, integrando dispositivos de borda com serviços de nuvem para monitoramento de saúde:
+
+* **Edge Layer:** Composta pelo ESP32 (simulado no Wokwi), sensor de peso (HX711), LED RGB e Pushbutton.
+* **Connectivity:** Comunicação via protocolo **MQTT** através do broker Mosquitto.
+* **Backend:** Utiliza o **IoT Agent MQTT** para tradução de mensagens, **Orion Context Broker** para gestão do estado atual e **STH-Comet** para persistência de dados no **MongoDB**.
+* **Application:** Plataforma composta por Interface de Usuário, Analytics de consumo hídrico e Gestão de Alertas preventivos.
 
 > O diagrama completo da arquitetura está na pasta `/docs/diagrama_arquitetura.png`
 
