@@ -7,17 +7,18 @@
 
 O **WayCare Dock** é um suporte inteligente para garrafa d'água que monitora automaticamente o consumo de hidratação do usuário. Utilizando um ESP32 conectado via MQTT a uma plataforma FIWARE na nuvem, o dispositivo captura dados em tempo real e os disponibiliza para consulta, compondo a camada de Edge Computing do ecossistema WayCare da Care Plus.
 
-Nesta sprint, o hardware foi simulado digitalmente no **Wokwi**, com o potenciômetro simulando uma célula de carga (balança) e o LED RGB fornecendo feedback visual ao usuário.
+Nesta sprint, o hardware foi simulado digitalmente no **Wokwi**, com uma **célula de carga (load cell)** lida pelo módulo conversor **HX711** para medir o peso real da garrafa, e um LED RGB fornecendo feedback visual ao usuário.
 
 ---
 
 ## 🏗️ Arquitetura da Solução
 
 ```
-[Edge Layer]          [Connectivity]     [Backend]              [Application]
-ESP32 (Wokwi)   →    MQTT :1883     →   IoT Agent :4041   →   Orion :1026
-Potenciômetro         Mosquitto          FIWARE                 Context Broker
-LED RGB               (Broker)           (Tradutor)             (Estado atual)
+[Edge Layer]              [Connectivity]     [Backend]              [Application]
+ESP32 (Wokwi)        →    MQTT :1883     →   IoT Agent :4041   →   Orion :1026
+Célula de carga           Mosquitto          FIWARE                 Context Broker
++ HX711 (peso)            (Broker)           (Tradutor)             (Estado atual)
+LED RGB
 Pushbutton
 ```
 
@@ -30,8 +31,10 @@ Pushbutton
 | Camada | Tecnologia |
 |--------|-----------|
 | Hardware simulado | ESP32 DevKit C v4 (Wokwi) |
+| Sensor de peso | Célula de carga + HX711 (24-bit ADC) |
 | Firmware | C++ (Arduino Framework) |
-| Protocolo IoT | MQTT (PubSubClient) |
+| Bibliotecas | PubSubClient, HX711 (bogde) |
+| Protocolo IoT | MQTT |
 | Broker MQTT | Eclipse Mosquitto 1.6.14 |
 | IoT Agent | FIWARE IoT Agent JSON |
 | Context Broker | FIWARE Orion |
@@ -60,6 +63,19 @@ waycare-edge/
 │
 └── README.md
 ```
+
+---
+
+## 🔩 Componentes do Circuito (Wokwi)
+
+| Componente | Pino ESP32 | Função |
+|------------|-----------|--------|
+| HX711 — DT (data) | GPIO 16 | Saída de dados da célula de carga |
+| HX711 — SCK (clock) | GPIO 17 | Clock de comunicação com o HX711 |
+| HX711 — VCC / GND | 3V3 / GND | Alimentação do módulo |
+| Célula de carga | E+, E-, A+, A- (HX711) | Sensor de peso (até ~5kg no Wokwi) |
+| Pushbutton | GPIO 25 | Botão de tara (segurar 2s) |
+| LED RGB — R / G / B | GPIO 12 / 14 / 27 | Feedback visual |
 
 ---
 
@@ -104,13 +120,24 @@ Execute os requests nessa ordem:
 | 3 | `IOT Agent → 2. Provisioning Service Group` | 201 Created |
 | 4 | `IOT Agent → 3. Provisioning WayCare Dock Device` | 201 Created |
 
+> Se os passos 3 e 4 retornarem `409 Conflict`, significa que o device já está provisionado — pode prosseguir normalmente.
+
 ---
 
 ### 3. Executar a Simulação no Wokwi
 
-Acesse o link da simulação pública: **[https://wokwi.com/projects/462317954210211841]**
+Acesse o link da simulação pública: **https://wokwi.com/projects/462317954210211841**
 
-- Gire o **potenciômetro** para simular o peso da água na garrafa
+Bibliotecas necessárias no `libraries.txt` do Wokwi:
+
+```
+HX711
+```
+
+Ajuste de uso:
+
+- **Arraste o slider da célula de carga** para simular o peso da água na garrafa
+- **Botão de tara**: segure por 2s para zerar a balança
 - Aguarde `💧 CONSUMO CONFIRMADO` aparecer no Serial Monitor
 - O ESP32 publicará os dados automaticamente via MQTT
 
@@ -156,11 +183,23 @@ Resposta esperada:
 
 | Atributo | Tipo | Descrição |
 |----------|------|-----------|
-| `peso` | Float | Peso atual na dock (gramas) |
+| `peso` | Float | Peso atual na dock (gramas, lido pela célula de carga via HX711) |
 | `consumo` | Float | Total consumido no dia (ml) |
 | `pct` | Float | Percentual da meta diária (%) |
 | `fatias` | Integer | Fatias da meta atingidas (0-4) |
 | `estado_led` | Text | Cor atual do LED de feedback |
+
+---
+
+## 🔬 Sobre a Leitura de Peso
+
+O módulo **HX711** é um conversor ADC de 24 bits específico para células de carga, que comunica com o ESP32 por dois fios (DT + SCK) em um protocolo serial proprietário. A biblioteca `HX711` (bogde) abstrai esse protocolo e fornece três operações principais utilizadas no firmware:
+
+- `scale.tare(N)` — zera a balança fazendo média de N leituras (usado pelo botão de tara)
+- `scale.get_units(N)` — retorna o peso já convertido em gramas
+- `scale.set_scale(factor)` — ajusta o fator de calibração (1.0 no Wokwi, valor calibrado em hardware real)
+
+Para suavizar pequenas variações de leitura, o firmware aplica uma **média móvel circular** de 20 amostras antes de avaliar variações de peso. Mudanças relevantes (≥20g) só são consideradas após **3 segundos de estabilidade**, evitando registrar consumo fantasma quando a garrafa está sendo manuseada.
 
 ---
 
