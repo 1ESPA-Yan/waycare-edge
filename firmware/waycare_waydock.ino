@@ -46,12 +46,16 @@
 #define PIN_B     27
 
 // Fator de calibração da HX711.
-// No Wokwi a célula é "perfeita" — 1.0 já dá leitura em gramas.
-// Em hardware real, calibra-se com um peso conhecido.
-#define HX_SCALE_FACTOR  1.0f
+// IMPORTANTE: O Wokwi tem um bug conhecido — para uma célula de 5kg,
+// ele entrega valor bruto máximo de ~2100 (em vez de ~2.100.000 do HX711 real).
+// Como queremos que 0-5kg apareça como 0-5000g, usamos:
+//   set_scale = 2100 / 5000 = 0.42
+// Em hardware real, este fator viria da calibração com peso conhecido.
+#define HX_SCALE_FACTOR  0.42f
 
 // ── Configurações de peso ─────────────────────────────────────
-#define MAX_WEIGHT_G        2000
+// Célula de carga do Wokwi suporta até 5kg = 5000g
+#define MAX_WEIGHT_G        5000
 #define TARE_HOLD_MS        2000
 #define STABLE_READS        20
 #define STABLE_TIME_MS      3000
@@ -89,6 +93,7 @@ HX711 scale;
 // ── Estado global ─────────────────────────────────────────────
 float   tareOffset      = 0;
 float   lastStableG     = 0;
+float   lastRawG        = 0;   // última leitura válida da HX711 (cache)
 float   readings[STABLE_READS];
 int     readIndex       = 0;
 float   readSum         = 0;
@@ -115,10 +120,13 @@ unsigned long lastLogMs = 0;
 #define LOG_INTERVAL_MS 500
 
 // ── Funções de cor do LED RGB ─────────────────────────────────
+// IMPORTANTE: o LED RGB do Wokwi é ÂNODO COMUM (pino central em 3V3).
+// Isso significa que o PWM funciona invertido: 0 = totalmente aceso,
+// 255 = totalmente apagado. Por isso aplicamos (255 - valor) abaixo.
 void setRGB(uint8_t r, uint8_t g, uint8_t b) {
-  ledcWrite(PIN_R, r);
-  ledcWrite(PIN_G, g);
-  ledcWrite(PIN_B, b);
+  ledcWrite(PIN_R, 255 - r);
+  ledcWrite(PIN_G, 255 - g);
+  ledcWrite(PIN_B, 255 - b);
 }
 void ledOff()    { setRGB(0,   0,   0);   }
 void ledRed()    { setRGB(255, 0,   0);   }
@@ -211,13 +219,20 @@ void publishMQTT(float pesoAtualG, const char* estadoLed) {
 
 // ── Leitura de peso com média móvel ──────────────────────────
 // Lê da HX711 (já em gramas após calibração+tara) e suaviza
-// pequenas variações com média móvel circular
+// pequenas variações com média móvel circular.
+//
+// IMPORTANTE: a HX711 só fornece nova amostra a ~10Hz (a cada ~100ms),
+// então is_ready() retorna false na maioria das chamadas do loop.
+// Quando isso acontece, repetimos a ÚLTIMA leitura crua válida —
+// nunca lastStableG, que é uma referência antiga e causaria oscilação
+// entre o valor real e o valor antigo.
 float readWeightG() {
   float grams;
   if (scale.is_ready()) {
     grams = scale.get_units(1);
+    lastRawG = grams;   // atualiza cache
   } else {
-    grams = lastStableG;
+    grams = lastRawG;   // repete última leitura válida
   }
   if (grams < 0) grams = 0;
   if (grams > MAX_WEIGHT_G) grams = MAX_WEIGHT_G;
@@ -238,6 +253,7 @@ void doTare() {
 
   tareOffset      = 0;
   lastStableG     = 0;
+  lastRawG        = 0;   // limpa cache pra não pegar valor pré-tara
   stableCandidate = 0;
   waitingStable   = false;
   isAirborne      = false;
