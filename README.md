@@ -19,8 +19,10 @@ A arquitetura do projeto **WayCare** baseia-se na plataforma **FIWARE**, integra
 
 * **Edge Layer:** Composta pelo ESP32 (simulado no Wokwi), célula de carga + HX711 para medição de peso, LED RGB e Pushbutton.
 * **Connectivity:** Comunicação via protocolo **MQTT** através do broker Mosquitto.
-* **Backend:** Utiliza o **IoT Agent MQTT** para tradução de mensagens, **Orion Context Broker** para gestão do estado atual e **STH-Comet** para persistência de dados no **MongoDB** (Sprint 3).
-* **Application:** Plataforma composta por App Mobile (paciente), Dashboard Web (Care Plus) e módulo de Analytics/AI para análise de padrões de consumo hídrico.
+* **Backend:** Utiliza o **IoT Agent MQTT** para tradução de mensagens, **Orion Context Broker** para gestão do estado atual e **STH-Comet** para persistência de dados no **MongoDB**.
+* **Application:** Plataforma WayCare composta por Interface do Usuário (Web + Mobile), Analytics de consumo hídrico e Gestão de Alertas preventivos.
+
+> 📌 **Nota sobre a arquitetura:** O diagrama representa a **arquitetura completa do produto WayCare**, incluindo funcionalidades previstas para evoluções futuras (como persistência histórica via STH-Comet e comando remoto de tara pela Plataforma WayCare). Na Sprint 2, está implementada a captura e publicação de dados em tempo real do dock para o Orion Context Broker — os elementos restantes representam o estado-alvo do sistema.
 
 ---
 
