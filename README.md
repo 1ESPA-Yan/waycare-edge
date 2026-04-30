@@ -7,22 +7,20 @@
 
 O **WayCare Dock** é um suporte inteligente para garrafa d'água que monitora automaticamente o consumo de hidratação do usuário. Utilizando um ESP32 conectado via MQTT a uma plataforma FIWARE na nuvem, o dispositivo captura dados em tempo real e os disponibiliza para consulta, compondo a camada de Edge Computing do ecossistema WayCare da Care Plus.
 
-Nesta sprint, o hardware foi simulado digitalmente no **Wokwi**, com uma **célula de carga (load cell)** lida pelo módulo conversor **HX711** para medir o peso real da garrafa, e um LED RGB fornecendo feedback visual ao usuário.
+Nesta sprint, o hardware foi simulado digitalmente no **Wokwi**, com uma **célula de carga (load cell) de 5kg** lida pelo módulo conversor **HX711** para medir o peso real da garrafa, e um LED RGB fornecendo feedback visual ao usuário sobre seu progresso de hidratação.
 
 ---
 
 ## 🏗️ Arquitetura da Solução
 
-![Diagrama de Arquitetura WayCare](docs/waycare.drawio.png.png)
+![Diagrama de Arquitetura WayCare](docs/waycare.drawio.png)
 
 A arquitetura do projeto **WayCare** baseia-se na plataforma **FIWARE**, integrando dispositivos de borda com serviços de nuvem para monitoramento de saúde:
 
-* **Edge Layer:** Composta pelo ESP32 (simulado no Wokwi), sensor de peso (HX711), LED RGB e Pushbutton.
+* **Edge Layer:** Composta pelo ESP32 (simulado no Wokwi), célula de carga + HX711 para medição de peso, LED RGB e Pushbutton.
 * **Connectivity:** Comunicação via protocolo **MQTT** através do broker Mosquitto.
-* **Backend:** Utiliza o **IoT Agent MQTT** para tradução de mensagens, **Orion Context Broker** para gestão do estado atual e **STH-Comet** para persistência de dados no **MongoDB**.
-* **Application:** Plataforma composta por Interface de Usuário, Analytics de consumo hídrico e Gestão de Alertas preventivos.
-
-> O diagrama completo da arquitetura está na pasta `/docs/diagrama_arquitetura.png`
+* **Backend:** Utiliza o **IoT Agent MQTT** para tradução de mensagens, **Orion Context Broker** para gestão do estado atual e **STH-Comet** para persistência de dados no **MongoDB** (Sprint 3).
+* **Application:** Plataforma composta por App Mobile (paciente), Dashboard Web (Care Plus) e módulo de Analytics/AI para análise de padrões de consumo hídrico.
 
 ---
 
@@ -31,7 +29,7 @@ A arquitetura do projeto **WayCare** baseia-se na plataforma **FIWARE**, integra
 | Camada | Tecnologia |
 |--------|-----------|
 | Hardware simulado | ESP32 DevKit C v4 (Wokwi) |
-| Sensor de peso | Célula de carga + HX711 (24-bit ADC) |
+| Sensor de peso | Célula de carga 5kg + HX711 (24-bit ADC) |
 | Firmware | C++ (Arduino Framework) |
 | Bibliotecas | PubSubClient, HX711 (bogde) |
 | Protocolo IoT | MQTT |
@@ -59,7 +57,7 @@ waycare-edge/
 │   └── WayCare_Fiware_Sprint2.postman_collection.json
 │
 ├── docs/
-│   └── diagrama_arquitetura.png    # Diagrama das camadas
+│   └── waycare.drawio.png          # Diagrama da arquitetura
 │
 └── README.md
 ```
@@ -72,10 +70,30 @@ waycare-edge/
 |------------|-----------|--------|
 | HX711 — DT (data) | GPIO 16 | Saída de dados da célula de carga |
 | HX711 — SCK (clock) | GPIO 17 | Clock de comunicação com o HX711 |
-| HX711 — VCC / GND | 3V3 / GND | Alimentação do módulo |
-| Célula de carga | E+, E-, A+, A- (HX711) | Sensor de peso (até ~5kg no Wokwi) |
+| HX711 — VCC | 3V3 | Alimentação do módulo |
+| HX711 — GND | GND | Terra do módulo |
+| Célula de carga | E+, E-, A+, A- (HX711) | Sensor de peso (até 5kg) |
 | Pushbutton | GPIO 25 | Botão de tara (segurar 2s) |
 | LED RGB — R / G / B | GPIO 12 / 14 / 27 | Feedback visual |
+| LED RGB — COM | 3V3 (ânodo comum) | Pino comum do LED |
+
+> ⚠️ **Atenção:** o LED RGB do Wokwi é **ânodo comum** (pino COM ligado em 3V3). Por isso o firmware aplica a lógica invertida no PWM (`255 - valor`). Caso utilize um LED de cátodo comum em hardware real, basta remover a inversão na função `setRGB()`.
+
+---
+
+## 💡 Estados do LED RGB
+
+O LED fornece feedback visual em tempo real sobre o estado do sistema:
+
+| Cor | Comportamento | Significado |
+|-----|---------------|-------------|
+| 🔵 Azul sólido | Aceso | Tarando a balança |
+| 🟡 Amarelo | Piscando | Garrafa levantada (no ar) |
+| 🔵 Azul fraco | Piscando | Aguardando estabilização do peso |
+| 🟢 Verde | Brilho proporcional ao % | Hidratação progredindo durante o dia |
+| 🟢 Verde sólido | Aceso por 5s | Fatia da meta atingida (25%, 50%, 75%) |
+| 🟢 Verde | Pulsando | 🏆 Meta diária 100% atingida |
+| 🔴 Vermelho | Piscando | Sem beber água há mais de 10 minutos |
 
 ---
 
@@ -131,14 +149,15 @@ Acesse o link da simulação pública: **https://wokwi.com/projects/462317954210
 Bibliotecas necessárias no `libraries.txt` do Wokwi:
 
 ```
+PubSubClient
 HX711
 ```
 
 Ajuste de uso:
 
-- **Arraste o slider da célula de carga** para simular o peso da água na garrafa
+- **Arraste o slider da célula de carga** (0 a 5kg) para simular o peso da água na garrafa
 - **Botão de tara**: segure por 2s para zerar a balança
-- Aguarde `💧 CONSUMO CONFIRMADO` aparecer no Serial Monitor
+- Aguarde `💧 CONSUMO CONFIRMADO` aparecer no Serial Monitor após variar o peso
 - O ESP32 publicará os dados automaticamente via MQTT
 
 ---
@@ -197,9 +216,26 @@ O módulo **HX711** é um conversor ADC de 24 bits específico para células de 
 
 - `scale.tare(N)` — zera a balança fazendo média de N leituras (usado pelo botão de tara)
 - `scale.get_units(N)` — retorna o peso já convertido em gramas
-- `scale.set_scale(factor)` — ajusta o fator de calibração (1.0 no Wokwi, valor calibrado em hardware real)
+- `scale.set_scale(factor)` — ajusta o fator de calibração
 
-Para suavizar pequenas variações de leitura, o firmware aplica uma **média móvel circular** de 20 amostras antes de avaliar variações de peso. Mudanças relevantes (≥20g) só são consideradas após **3 segundos de estabilidade**, evitando registrar consumo fantasma quando a garrafa está sendo manuseada.
+### Calibração no Wokwi
+
+O simulador Wokwi usa apenas ~11 bits de resolução do HX711 (em vez dos 24 bits do hardware real), entregando valor bruto máximo de ~2100 para uma célula de 5kg. Para compensar e obter leitura direta em gramas (0-5000g), utilizamos:
+
+```cpp
+#define HX_SCALE_FACTOR  0.42f   // 2100 / 5000 = 0.42
+```
+
+Em hardware real, este fator viria da calibração com peso conhecido (geralmente um valor muito maior, na casa das centenas).
+
+### Estabilidade de Leitura
+
+Para suavizar pequenas variações de leitura, o firmware aplica:
+
+- **Média móvel circular** de 20 amostras
+- **Cache da última leitura válida** (a HX711 só fornece amostra a ~10Hz, então a maioria dos ciclos do `loop()` precisa repetir o último valor)
+- **Janela de estabilização de 3 segundos** antes de confirmar consumo ou abastecimento (evita registrar consumo fantasma quando a garrafa está sendo manuseada)
+- **Variação mínima de 20g** para considerar uma mudança relevante
 
 ---
 
