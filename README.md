@@ -13,7 +13,7 @@ Nesta sprint, o hardware foi simulado digitalmente no **Wokwi**, com uma **célu
 
 ## 🏗️ Arquitetura da Solução
 
-![Diagrama de Arquitetura WayCare](docs/waycare.drawio.png)
+![Diagrama de Arquitetura WayCare](docs/WayCare_Arquitetura_v77.drawio.png)
 
 A arquitetura do projeto **WayCare** baseia-se na plataforma **FIWARE**, integrando dispositivos de borda com serviços de nuvem para monitoramento de saúde:
 
