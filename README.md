@@ -243,7 +243,7 @@ Para suavizar pequenas variações de leitura, o firmware aplica:
 
 ## 🎥 Vídeo de Demonstração
 
-**[INSERIR LINK DO YOUTUBE AQUI]**
+**https://youtu.be/sUaHd-ab9Ss**
 
 ---
 
@@ -261,5 +261,5 @@ Para suavizar pequenas variações de leitura, o firmware aplica:
 ## 🔗 Links
 
 - 🔵 [Simulação Wokwi](https://wokwi.com/projects/462317954210211841)
-- 📺 [Vídeo YouTube](INSERIR LINK)
+- 📺 [Vídeo YouTube](https://youtu.be/sUaHd-ab9Ss)
 - 📋 [Challenge Care Plus — FIAP](https://www.fiap.com.br)
