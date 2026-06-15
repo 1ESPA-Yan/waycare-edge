@@ -1,0 +1,14 @@
+[Unit]
+Description=WayCare Dock - Backend Python (processamento + API)
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=joaovictor
+WorkingDirectory=/home/joaovictor/waycare-backend
+ExecStart=/usr/bin/python3 /home/joaovictor/waycare-backend/waycare_python.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
