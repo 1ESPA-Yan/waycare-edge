@@ -44,6 +44,8 @@ LIMIAR_FORA    = -20.0    # peso < -20g = garrafa removida da dock
 INATIVIDADE_S  = 60 * 60  # 1 hora sem beber (com garrafa presente) -> LED vermelho
 POLL_S         = 2        # intervalo de leitura do Orion
 SNAPSHOT_S     = 60       # intervalo entre snapshots no histórico
+REENVIO_LED_S  = 15       # reenvia a cor do LED ao ESP32 a cada 15s (anti-azul-travado)
+REBASELINE_S   = 8        # janela (s) de re-baseline após a tara (cobre latência do ESP32)
 
 # --- Parâmetros da fórmula de meta personalizada ---------------------------
 # Aproximação transparente (NÃO é prescrição médica). Bases científicas:
@@ -83,7 +85,7 @@ estado = {
     "estado_led": "verde",
     "streak": 0,
     "ultima_atividade": time.time(),
-    "ignorar_proximo": False,  # flag de re-baseline pós-tara
+    "rebaseline_ate": 0.0,     # re-baseline ativo até este timestamp (pós-tara)
     "garrafa_fora": False,
     "data_dia": date.today().isoformat(),
     "online": False,
@@ -92,6 +94,7 @@ estado = {
     "perfil": None,          # dados do dono da dock (peso/altura/genero/cidade)
     "temp": None,            # temperatura local mais recente (°C)
     "hibernado": False,      # quando True, a dock não processa consumo
+    "ultimo_envio_led": 0.0, # timestamp do último comando de LED enviado
 }
 
 mqtt_client = mqtt.Client()
@@ -282,10 +285,14 @@ def processar_peso(peso):
     if estado["hibernado"]:
         return
 
-    # 1) Re-baseline após tara/reativação: ignora a 1ª leitura p/ não contar salto
-    if estado["ignorar_proximo"]:
+    # 1) Re-baseline após tara/reativação.
+    #    Em vez de ignorar só "a próxima leitura" (frágil: a leitura pode chegar
+    #    ANTES de o ESP32 executar a tara, gastando a flag cedo demais e contando
+    #    o salto pra zero como consumo), re-baseline TODAS as leituras durante uma
+    #    janela de tempo após o comando de tara. Assim, quando o zero real chega,
+    #    ele é absorvido como novo baseline, não como gole.
+    if agora < estado["rebaseline_ate"]:
         estado["peso_ref"] = peso
-        estado["ignorar_proximo"] = False
         estado["garrafa_fora"] = (peso < LIMIAR_FORA)
         return
 
@@ -340,9 +347,16 @@ def recalcular():
     else:
         novo_led = "verde"
 
-    if novo_led != estado["estado_led"]:
+    # Reenvia o comando de LED quando a cor muda OU a cada REENVIO_LED_S.
+    # O reenvio periódico garante que o ESP32 saia do azul de boot e reflita
+    # a cor certa mesmo se ligar depois do backend ou perder um comando MQTT.
+    agora = time.time()
+    mudou = (novo_led != estado["estado_led"])
+    venceu = (agora - estado["ultimo_envio_led"]) > REENVIO_LED_S
+    if mudou or venceu:
         estado["estado_led"] = novo_led
-        enviar_led(novo_led)                 # comanda o LED só quando muda
+        estado["ultimo_envio_led"] = agora
+        enviar_led(novo_led)
 
 def rollover_dia():
     """Vira o dia à meia-noite: fecha o anterior e zera o consumo."""
@@ -472,9 +486,10 @@ def calcular_meta_preview():
 
 @app.route("/tara", methods=["POST"])
 def tara():
-    """Botão de tara DO SITE. Manda o comando ao ESP32 e re-baseline o backend."""
+    """Botão de tara DO SITE. Manda o comando ao ESP32 e re-baseline o backend
+    por uma janela de tempo (cobre a latência até o ESP32 executar a tara)."""
     with lock:
-        estado["ignorar_proximo"] = True     # não contar o salto pós-tara
+        estado["rebaseline_ate"] = time.time() + REBASELINE_S
     enviar_tara()
     db_evento("tara", 0)
     return jsonify({"ok": True, "msg": "Tara enviada ao dispositivo"})
