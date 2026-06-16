@@ -86,14 +86,7 @@ o LED sempre reflita o estado real.
 
 ## Arquitetura
 
-```
-ESP32 --peso(MQTT)--> IoT Agent --> Orion --HTTP--> Python --> SQLite --> Site
-  ^                                                   |
-  +------------- comando tara/led (MQTT) -------------+
-                                         Open-Meteo (temperatura da cidade)
-```
-
-![Diagrama de Arquitetura WayCare](docs/WayCare_Arquitetura_v99.drawio.png)
+![Diagrama de Arquitetura WayCare](docs/arquitetura_waycare.png)
 
 - **Edge (ESP32):** estabiliza o peso (mediana da janela), publica só na mudança,
   executa tara/LED. Não calcula consumo.
